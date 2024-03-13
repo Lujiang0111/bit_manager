@@ -7,8 +7,9 @@ namespace bitmgr
 
 constexpr size_t kBufferPadingSize = 1024;
 
-BitWriter::BitWriter(uint8_t *buf, ByteOrders byte_order) :
+BitWriter::BitWriter(uint8_t *buf, size_t buf_size, ByteOrders byte_order) :
     buf_(buf),
+    buf_size_(buf_size),
     byte_order_(byte_order),
     internal_buf_(0),
     next_save_point_id_(0)
@@ -27,7 +28,7 @@ BitWriter::~BitWriter()
 
 void BitWriter::WriteBits(int64_t val, size_t bits)
 {
-    CheckSize(bits / 8 + 1);
+    ResizeInternalBuf(bits / 8 + 1);
     for (--bits; bits > 0; --bits)
     {
         if ((val >> bits) & 0x01)
@@ -69,7 +70,7 @@ void BitWriter::WriteAlign()
 
 void BitWriter::WriteByte(int64_t val)
 {
-    CheckSize(1);
+    ResizeInternalBuf(1);
     if (0x80 == cur_save_point_.bit_mask)
     {
         buf_[cur_save_point_.offset] = val & 0xFF;
@@ -156,7 +157,7 @@ void BitWriter::WriteBytes(const uint8_t *data, size_t size)
         return;
     }
 
-    CheckSize(size);
+    ResizeInternalBuf(size);
     memcpy(buf_ + cur_save_point_.offset, data, size);
     cur_save_point_.offset += size;
 }
@@ -168,7 +169,7 @@ void BitWriter::SkipBits(size_t bits)
     bits %= 8;
     if (bits > 0)
     {
-        CheckSize(1);
+        ResizeInternalBuf(1);
         for (; bits > 0; --bits)
         {
             NextBitMask();
@@ -178,7 +179,7 @@ void BitWriter::SkipBits(size_t bits)
 
 void BitWriter::SkipBytes(size_t bytes)
 {
-    CheckSize(bytes);
+    ResizeInternalBuf(bytes);
     cur_save_point_.offset += bytes;
 }
 
@@ -221,6 +222,16 @@ size_t BitWriter::Size() const
     return (0x80 == cur_save_point_.bit_mask) ? (cur_save_point_.offset) : (cur_save_point_.offset + 1);
 }
 
+bool BitWriter::IsAvailable(size_t size) const
+{
+    if (0 == buf_size_)
+    {
+        return true;
+    }
+
+    return (Size() + size < buf_size_);
+}
+
 void BitWriter::NextBitMask()
 {
     cur_save_point_.bit_mask >>= 1;
@@ -231,7 +242,7 @@ void BitWriter::NextBitMask()
     }
 }
 
-void BitWriter::CheckSize(size_t bytes)
+void BitWriter::ResizeInternalBuf(size_t bytes)
 {
     if (internal_buf_.empty())
     {

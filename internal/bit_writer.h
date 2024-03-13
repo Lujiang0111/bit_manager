@@ -15,7 +15,7 @@ public:
     BitWriter(const BitWriter &) = delete;
     BitWriter &operator=(const BitWriter &) = delete;
 
-    BitWriter(uint8_t *buf, ByteOrders byte_order);
+    BitWriter(uint8_t *buf, size_t buf_size, ByteOrders byte_order);
     virtual ~BitWriter();
 
     // bit
@@ -44,6 +44,7 @@ public:
 
     virtual uint8_t *Buf();
     virtual size_t Size() const;
+    virtual bool IsAvailable(size_t size) const;
 
 private:
     struct SavePoint
@@ -54,10 +55,11 @@ private:
 
 private:
     void NextBitMask();
-    void CheckSize(size_t bytes);
+    void ResizeInternalBuf(size_t bytes);
 
 private:
     uint8_t *buf_;
+    size_t buf_size_;
     ByteOrders byte_order_;
 
     std::vector<uint8_t> internal_buf_;

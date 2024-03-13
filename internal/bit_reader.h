@@ -14,7 +14,7 @@ public:
     BitReader(const BitReader &) = delete;
     BitReader &operator=(const BitReader &) = delete;
 
-    BitReader(const uint8_t *data, ByteOrders byte_order);
+    BitReader(const uint8_t *data, size_t data_size, ByteOrders byte_order);
     virtual ~BitReader();
 
     // bit
@@ -42,6 +42,7 @@ public:
     virtual void ClearSave(int64_t saved_point);
 
     virtual size_t Size() const;
+    virtual bool IsAvailable(size_t size) const;
 
 private:
     struct SavePoint
@@ -55,6 +56,7 @@ private:
 
 private:
     const uint8_t *data_;
+    size_t data_size_;
     ByteOrders byte_order_;
 
     SavePoint cur_save_point_;

@@ -4,8 +4,9 @@
 namespace bitmgr
 {
 
-BitReader::BitReader(const uint8_t *data, ByteOrders byte_order) :
+BitReader::BitReader(const uint8_t *data, size_t data_size, ByteOrders byte_order) :
     data_(data),
+    data_size_(data_size),
     byte_order_(byte_order),
     next_save_point_id_(0)
 {
@@ -210,6 +211,17 @@ size_t BitReader::Size() const
 {
     return (0x80 == cur_save_point_.bit_mask) ? (cur_save_point_.offset) : (cur_save_point_.offset + 1);
 }
+
+bool BitReader::IsAvailable(size_t size) const
+{
+    if (0 == data_size_)
+    {
+        return true;
+    }
+
+    return (Size() + size < data_size_);
+}
+
 
 void BitReader::NextBitMask()
 {
